@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+
+      - name: Ruff lint
+        run: ruff check .
+
+      - name: Ruff format check
+        run: ruff format --check .
+
+      - name: Mypy (all services)
+        run: mypy
+
+      - name: Tests with coverage
+        run: pytest --cov --cov-report=xml --cov-report=term-missing
+
+  docker:
+    runs-on: ubuntu-latest
+    needs: quality
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate compose config
+        run: docker compose -f docker-compose.yml config --quiet
+
+      - name: Build all service images
+        run: |
+          for svc in gateway catalog-service order-service notification-service; do
+            docker build --build-arg SERVICE=$svc -t orderflow-$svc:${{ github.sha }} .
+          done

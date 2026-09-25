@@ -1,0 +1,1 @@
+"""Маршруты notification-service."""

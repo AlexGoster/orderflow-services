@@ -1,0 +1,103 @@
+x-app-env: &app-env
+  BUS_BACKEND: redis
+  REDIS_URL: redis://redis:6379/0
+
+services:
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 5
+
+  catalog:
+    build:
+      context: .
+      args: { SERVICE: catalog-service }
+    command: >
+      uvicorn catalog_app.main:app --host 0.0.0.0 --port 8001
+      --app-dir services/catalog-service
+    environment:
+      <<: *app-env
+      DATABASE_URL: postgresql+asyncpg://orderflow:orderflow@db:5432/catalog
+    ports:
+      - "8001:8001"
+    depends_on:
+      redis:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+
+  order:
+    build:
+      context: .
+      args: { SERVICE: order-service }
+    command: >
+      uvicorn order_app.main:app --host 0.0.0.0 --port 8002
+      --app-dir services/order-service
+    environment:
+      <<: *app-env
+      DATABASE_URL: postgresql+asyncpg://orderflow:orderflow@db:5432/orders
+      CATALOG_SERVICE_URL: http://catalog:8001
+    ports:
+      - "8002:8002"
+    depends_on:
+      redis:
+        condition: service_healthy
+      catalog:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+
+  notification:
+    build:
+      context: .
+      args: { SERVICE: notification-service }
+    command: >
+      uvicorn notification_app.main:app --host 0.0.0.0 --port 8003
+      --app-dir services/notification-service
+    environment:
+      <<: *app-env
+      DATABASE_URL: postgresql+asyncpg://orderflow:orderflow@db:5432/notifications
+    ports:
+      - "8003:8003"
+    depends_on:
+      redis:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+
+  gateway:
+    build:
+      context: .
+      args: { SERVICE: gateway }
+    command: >
+      uvicorn gateway_app.main:app --host 0.0.0.0 --port 8000
+      --app-dir services/gateway
+    environment:
+      <<: *app-env
+      CATALOG_SERVICE_URL: http://catalog:8001
+      ORDER_SERVICE_URL: http://order:8002
+      NOTIFICATION_SERVICE_URL: http://notification:8003
+    ports:
+      - "8000:8000"
+    depends_on:
+      - catalog
+      - order
+      - notification
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: orderflow
+      POSTGRES_PASSWORD: orderflow
+      POSTGRES_DB: postgres
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U orderflow"]
+      interval: 5s
+      retries: 5
+
+volumes:
+  pgdata:
