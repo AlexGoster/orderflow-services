@@ -1,0 +1,3 @@
+CREATE DATABASE catalog;
+CREATE DATABASE orders;
+CREATE DATABASE notifications;

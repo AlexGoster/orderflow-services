@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from notification_app.api.router import api_router
 from notification_app.core.config import Settings, get_settings
-from notification_app.core.database import dispose_engine, get_session_factory
+from notification_app.core.database import Base, dispose_engine, get_session_factory
 from notification_app.services import notifications as notifications_service
 from shared.context import RequestIdMiddleware
 from shared.contracts import TOPIC_ORDER_CREATED, HealthResponse, OrderCreated
@@ -40,6 +40,10 @@ def _make_order_created_handler(app: FastAPI) -> EventHandler:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    async with app.state.session_factory() as session:
+        connection = await session.connection()
+        await connection.run_sync(Base.metadata.create_all)
+        await session.commit()
     bus: EventBus = app.state.bus
     await bus.subscribe(TOPIC_ORDER_CREATED, _make_order_created_handler(app))
     logger.info("subscribed to topic", extra={"topic": TOPIC_ORDER_CREATED})

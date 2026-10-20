@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from order_app.api.router import api_router
 from order_app.core.catalog_client import CatalogClient
 from order_app.core.config import Settings, get_settings
-from order_app.core.database import dispose_engine, get_session_factory
+from order_app.core.database import Base, dispose_engine, get_session_factory
 from order_app.core.resilience import CircuitBreaker
 from shared.context import RequestIdMiddleware
 from shared.contracts import HealthResponse
@@ -22,6 +22,10 @@ SERVICE_NAME = "order-service"
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    async with app.state.session_factory() as session:
+        connection = await session.connection()
+        await connection.run_sync(Base.metadata.create_all)
+        await session.commit()
     yield
     await dispose_engine()
     client: CatalogClient = app.state.catalog_client
