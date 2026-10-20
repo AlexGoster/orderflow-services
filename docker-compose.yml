@@ -15,7 +15,7 @@ services:
       context: .
       args: { SERVICE: catalog-service }
     command: >
-      uvicorn catalog_app.main:app --host 0.0.0.0 --port 8001
+      uvicorn catalog_app.main:create_app --factory --host 0.0.0.0 --port 8001
       --app-dir services/catalog-service
     environment:
       <<: *app-env
@@ -33,7 +33,7 @@ services:
       context: .
       args: { SERVICE: order-service }
     command: >
-      uvicorn order_app.main:app --host 0.0.0.0 --port 8002
+      uvicorn order_app.main:create_app --factory --host 0.0.0.0 --port 8002
       --app-dir services/order-service
     environment:
       <<: *app-env
@@ -54,7 +54,7 @@ services:
       context: .
       args: { SERVICE: notification-service }
     command: >
-      uvicorn notification_app.main:app --host 0.0.0.0 --port 8003
+      uvicorn notification_app.main:create_app --factory --host 0.0.0.0 --port 8003
       --app-dir services/notification-service
     environment:
       <<: *app-env
@@ -72,7 +72,7 @@ services:
       context: .
       args: { SERVICE: gateway }
     command: >
-      uvicorn gateway_app.main:app --host 0.0.0.0 --port 8000
+      uvicorn gateway_app.main:create_app --factory --host 0.0.0.0 --port 8000
       --app-dir services/gateway
     environment:
       <<: *app-env
@@ -94,6 +94,7 @@ services:
       POSTGRES_DB: postgres
     volumes:
       - pgdata:/var/lib/postgresql/data
+      - ./docker/init-databases.sql:/docker-entrypoint-initdb.d/01-databases.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U orderflow"]
       interval: 5s

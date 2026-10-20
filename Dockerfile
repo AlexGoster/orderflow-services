@@ -18,5 +18,6 @@ COPY services ./services
 USER app
 
 ARG SERVICE=gateway
+ENV SERVICE=${SERVICE}
 EXPOSE 8000
-CMD uvicorn gateway_app.main:app --host 0.0.0.0 --port 8000 --app-dir services/gateway
+CMD ["python", "-m", "shared.launch"]
