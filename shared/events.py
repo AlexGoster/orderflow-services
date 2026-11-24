@@ -94,7 +94,8 @@ class RedisEventBus:
                 await task
         self._tasks.clear()
         for pubsub in self._pubsubs:
-            await pubsub.aclose()  # type: ignore[no-untyped-call]  # redis-py без аннотаций
+            close_pubsub: Callable[[], Awaitable[None]] = pubsub.aclose
+            await close_pubsub()
         self._pubsubs.clear()
         await self._client.aclose()
 
