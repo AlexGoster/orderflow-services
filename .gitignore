@@ -26,3 +26,8 @@ smoke.db
 # IDE
 .idea/
 .vscode/
+
+# Local verification artifacts
+*.egg-info/
+build/
+dist/

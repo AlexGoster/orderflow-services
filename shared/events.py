@@ -77,7 +77,10 @@ class RedisEventBus:
                     continue
                 data = message.get("data")
                 text = data.decode() if isinstance(data, bytes | bytearray) else str(data)
-                await handler(json.loads(text))
+                try:
+                    await handler(json.loads(text))
+                except Exception:
+                    logger.exception("invalid event or event handler failed")
         except asyncio.CancelledError:
             raise
         except Exception:
@@ -91,7 +94,8 @@ class RedisEventBus:
                 await task
         self._tasks.clear()
         for pubsub in self._pubsubs:
-            await pubsub.aclose()  # type: ignore[no-untyped-call]  # redis-py без аннотаций
+            close_pubsub: Callable[[], Awaitable[None]] = pubsub.aclose
+            await close_pubsub()
         self._pubsubs.clear()
         await self._client.aclose()
 

@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from catalog_app.api.router import api_router
 from catalog_app.core.config import get_settings
-from catalog_app.core.database import dispose_engine, get_session_factory
+from catalog_app.core.database import Base, dispose_engine, get_session_factory
 from shared.context import RequestIdMiddleware
 from shared.contracts import HealthResponse
 from shared.errors import register_exception_handlers
@@ -18,7 +18,11 @@ SERVICE_NAME = "catalog-service"
 
 
 @asynccontextmanager
-async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    async with app.state.session_factory() as session:
+        connection = await session.connection()
+        await connection.run_sync(Base.metadata.create_all)
+        await session.commit()
     yield
     await dispose_engine()
 

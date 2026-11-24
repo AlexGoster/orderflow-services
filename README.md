@@ -1,5 +1,7 @@
 # OrderFlow Services
 
+[Проверенный запуск и ограничения](VERIFICATION.md).
+
 [![CI](https://github.com/AlexGoster/orderflow-services/actions/workflows/ci.yml/badge.svg)](https://github.com/AlexGoster/orderflow-services/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/python-3.12%2B-blue)
 ![Coverage](https://img.shields.io/badge/coverage-89%25-brightgreen)
@@ -72,7 +74,7 @@ docker compose up -d
 
 ## Тесты
 
-**27 тестов, покрытие 89%** — без Docker, Redis и сети (ASGI-транспорты + in-memory шина):
+**27 тестов** — без Docker, Redis и сети (ASGI-транспорты + in-memory шина):
 
 - сквозной сценарий: товар через шлюз → заказ → уведомление;
 - **degraded**: catalog недоступен → `201` + `degraded=true` + warnings;
@@ -90,8 +92,8 @@ CI: `ruff → mypy (strict, 54 файла) → pytest --cov → docker compose c
 - Альтернатива (всё через очередь) усложнила бы проверку товара: клиент ждал бы ответ по HTTP.
 
 **Что сломалось при разделении монолита**
-1. Дублирование схем: контракты вынесены в `shared/`, но миграции и модели теперь в 3 БД — их синхронизировать сложнее.
-2. Распределённые транзакции: списание денег и создание уведомления уже не в одной транзакции — нужны сага/компенсации.
+1. Контракты вынесены в `shared/`, модели хранятся в трёх БД. create_all создаёт новую схему; миграции изменений существующей схемы пока не реализованы.
+2. Создание заказа и публикация уведомления не атомарны. Платежей и списания денег в этом проекте нет.
 3. Наблюдаемость: один лог запроса теперь собирается из 3 сервисов — без correlation id их не склеить.
 
 ## Как дальше до production
@@ -104,3 +106,5 @@ CI: `ruff → mypy (strict, 54 файла) → pytest --cov → docker compose c
 ## Лицензия
 
 [MIT](LICENSE)
+
+Для нового Compose volume три БД создаются docker/init-databases.sql. Для уже существующего volume создайте отсутствующие catalog/orders/notifications вручную, не удаляя volume. Авторизации, резервирования stock и платежей нет. Redis pub/sub теряет события при отключённых подписчиках.

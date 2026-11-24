@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "orderflow-services"
 version = "1.0.0"
-description = "OrderFlow Services вЂ” РґРµРєРѕРјРїРѕР·РёС†РёСЏ РјРѕРЅРѕР»РёС‚Р° РЅР° 4 РјРёРєСЂРѕСЃРµСЂРІРёСЃР° РІ РѕРґРЅРѕРј СЂРµРїРѕР·РёС‚РѕСЂРёРё"
+description = "OrderFlow Services — четыре микросервиса для каталога, заказов, уведомлений и API-шлюза"
 readme = "README.md"
 license = { text = "MIT" }
 requires-python = ">=3.12"

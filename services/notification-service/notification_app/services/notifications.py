@@ -3,6 +3,7 @@
 import logging
 
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from notification_app.models import Notification
@@ -38,7 +39,16 @@ async def send_order_notification(
         request_id=event.request_id,
     )
     session.add(notification)
-    await session.commit()
+    try:
+        await session.commit()
+    except IntegrityError:
+        await session.rollback()
+        existing = await session.scalar(
+            select(Notification).where(Notification.order_id == event.order_id)
+        )
+        if existing is not None:
+            return existing
+        raise
     await session.refresh(notification)
     logger.info(
         "notification sent",
